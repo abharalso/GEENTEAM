@@ -1,0 +1,87 @@
+/*********
+  Rui Santos
+  Complete project details at https://RandomNerdTutorials.com/esp-now-one-to-many-esp32-esp8266/
+  
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files.
+  
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+*********/
+
+#include <esp_now.h>
+#include <WiFi.h>
+#define PIN 33
+#define NUMPIXELS 12
+#define LED_COUNT 12
+#include <Adafruit_NeoPixel.h>
+Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
+
+//Structure example to receive data
+//Must match the sender structure
+typedef struct test_struct {
+  int value;
+  int R;
+  int G;
+  int B;
+  int brightness;
+} test_struct;
+
+//Create a struct_message called myData
+test_struct myData;
+
+//callback function that will be executed when data is received
+void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
+  memcpy(&myData, incomingData, sizeof(myData));
+  Serial.print("Bytes received: ");
+  Serial.println(len);
+  Serial.print("value: ");
+  Serial.println(myData.value);
+  Serial.print("y: ");
+  Serial.println(myData.value);
+  Serial.println();
+}
+ 
+void setup() {
+  //Initialize Serial Monitor
+  Serial.begin(115200);
+  
+  //Set device as a Wi-Fi Station
+  WiFi.mode(WIFI_STA);
+
+  //Init ESP-NOW
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
+  
+  // Once ESPNow is successfully Init, we will register for recv CB to
+  // get recv packer info
+  esp_now_register_recv_cb(OnDataRecv);
+}
+ 
+ 
+void loop() {
+  Serial.print("Value: ");
+  Serial.print(myData.value);
+  delay(2000);
+  Serial.print("R: ");
+  Serial.print(myData.R);
+  delay(2000);
+    Serial.print(myData.G);
+  delay(2000);
+  Serial.print(myData.B);
+  delay(2000);
+    if (myData.value == 1){
+    pixels.clear();
+    for(int i = 0; i < LED_COUNT; i++) {
+      pixels.setPixelColor(i, pixels.Color(myData.R, myData.G, myData.B));
+    }
+    pixels.show();
+  }
+  else
+  {
+    pixels.clear();
+    pixels.show();
+  }
+}
