@@ -1,0 +1,137 @@
+// put your setup code here, to run once:
+// Template ID, Device Name and Auth Token are provided by the Blynk.Cloud
+// See the Device Info tab, or Template settings
+#define BLYNK_TEMPLATE_ID           "TMPLMxEeTrJ3"
+#define BLYNK_DEVICE_NAME           "Quickstart Device"
+#define BLYNK_AUTH_TOKEN            "cExRaldWjbzkcRLePBMfQ3X6dNZHfaGQ"
+#define BLYNK_PRINT Serial
+
+#define PIN  33
+#define NUMPIXELS 24
+#define LED_COUNT 24
+#include <Adafruit_NeoPixel.h>
+Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
+
+#include <esp_now.h>
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <BlynkSimpleEsp32.h>
+
+char auth[] = BLYNK_AUTH_TOKEN;
+
+// Your WiFi credentials.
+// Set password to "" for open networks.
+char ssid[] = "Annalie Phone";
+char pass[] = "hawc684*";
+
+uint8_t broadcastAddress1[] = {0xC8, 0xF0, 0x9E, 0x9B, 0x48, 0x0C};
+//uint8_t broadcastAddress[] = {0xC8, 0xF0, 0x9E, 0x9A, 0xE7, 0x78};
+//uint8_t Receiver_Address2[] = {0xC8, 0xF0, 0x9E, 0x9C, 0x13, 0x80};
+
+BlynkTimer timer;
+//Define a data structure
+typedef struct test_struct {
+  int value; //ON/OFF
+  int R;
+  int G;
+  int B;
+  int brightness;
+} struct_message;
+// Create a structured object
+struct_message myData;
+
+esp_now_peer_info_t peerInfo;
+
+// This function is called every time the Virtual Pin 0 state changes
+BLYNK_WRITE(V0)
+{
+  // Set incoming value from pin V0 to a variable
+  myData.value = param.asInt();
+}
+BLYNK_WRITE(V1)
+{
+  myData.R = param.asInt();
+}
+BLYNK_WRITE(V2)
+{
+  myData.G = param.asInt();
+}
+BLYNK_WRITE(V3)
+{
+  myData.B = param.asInt();
+}
+BLYNK_WRITE(V4)
+{
+  myData.brightness = param.asInt();
+}
+
+// This function is called every time the device is connected to the Blynk.Cloud
+BLYNK_CONNECTED()
+{
+  Blynk.syncVirtual(V0);
+  // Change Web Link Button message to "Congratulations!"
+  Blynk.setProperty(V3, "offImageUrl", "https://static-image.nyc3.cdn.digitaloceanspaces.com/general/fte/congratulations.png");
+  Blynk.setProperty(V3, "onImageUrl",  "https://static-image.nyc3.cdn.digitaloceanspaces.com/general/fte/congratulations_pressed.png");
+  Blynk.setProperty(V3, "url", "https://docs.blynk.io/en/getting-started/what-do-i-need-to-blynk/how-quickstart-device-was-made");
+}
+
+// This function sends Arduino's uptime every second to Virtual Pin 2.
+void myTimerEvent()
+{
+  // You can send any value at any time.
+  // Please don't send more that 10 values per second.
+  Blynk.virtualWrite(V2, millis() / 1000);
+}
+
+void setup()
+{
+  // Debug console
+  Serial.begin(115200);
+  pixels.begin();
+
+  Blynk.begin(auth, ssid, pass);
+  // You can also specify server:
+  //Blynk.begin(auth, ssid, pass, "blynk.cloud", 80);
+  //Blynk.begin(auth, ssid, pass, IPAddress(192,168,1,100), 8080);
+
+  // Setup a function to be called every second
+  timer.setInterval(1000L, myTimerEvent);
+  pinMode(33, OUTPUT);
+  
+}
+
+void loop()
+{
+  Blynk.run();
+  timer.run();
+  // You can inject your own code or combine it with other sketches.
+  // Check other examples on how to communicate with Blynk. Remember
+  // to avoid delay() function!
+  Serial.print("V0: ");
+  Serial.println(myData.value);
+
+  Serial.print("R Value: ");
+  Serial.println(myData.R);
+  
+  Serial.print("G Value: ");
+  Serial.println(myData.G);
+
+  Serial.print("B Value: ");
+  Serial.println(myData.B);
+  
+  pixels.setBrightness(myData.brightness);
+  if (myData.value == 1)
+  {
+    pixels.clear();
+    for (int i = 0; i < LED_COUNT; i++) {
+      pixels.setPixelColor(i, pixels.Color(myData.R, myData.G, myData.B));
+    }
+    pixels.show();
+  }  
+  else
+  {
+    pixels.clear();
+    pixels.show();
+  }
+  //delay(500);
+}
